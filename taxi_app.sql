@@ -27,16 +27,16 @@ SET time_zone = "+00:00";
 -- Table structure for table `bank_detail`
 --
 
-CREATE TABLE `bank_detail` (
-  `bank_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL DEFAULT 0,
-  `account_name` varchar(200) NOT NULL DEFAULT '',
-  `bsb` varchar(100) NOT NULL DEFAULT '',
-  `account_no` varchar(50) NOT NULL DEFAULT '',
-  `bank_name` varchar(150) NOT NULL DEFAULT '',
-  `created_date` datetime NOT NULL DEFAULT current_timestamp(),
-  `status` int(1) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- CREATE TABLE `bank_detail` (
+--   `bank_id` int(11) NOT NULL,
+--   `user_id` int(11) NOT NULL DEFAULT 0,
+--   `account_name` varchar(200) NOT NULL DEFAULT '',
+--   `bsb` varchar(100) NOT NULL DEFAULT '',
+--   `account_no` varchar(50) NOT NULL DEFAULT '',
+--   `bank_name` varchar(150) NOT NULL DEFAULT '',
+--   `created_date` datetime NOT NULL DEFAULT current_timestamp(),
+--   `status` int(1) NOT NULL DEFAULT 1
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `bank_detail`
@@ -540,7 +540,8 @@ CREATE TABLE `request_detail` (
 --
 
 CREATE TABLE `service_detail` (
-  `service_id` int(11) NOT NULL,
+  `service_id` int(11) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`service_id`), 
   `service_name` varchar(40) NOT NULL DEFAULT '',
   `seat` varchar(5) NOT NULL DEFAULT '4',
   `color` varchar(10) NOT NULL DEFAULT '000000',
@@ -748,7 +749,7 @@ INSERT INTO `zone_document` (`zone_doc_id`, `zone_id`, `service_id`, `personal_d
 CREATE TABLE `zone_list` (
   `zone_id` int(11) NOT NULL,
   `zone_name` varchar(100) NOT NULL DEFAULT '',
-  `zone_json` text NOT NULL DEFAULT '[]',
+  `zone_json` text NOT NULL,
   `city` varchar(100) NOT NULL DEFAULT '',
   `tax` varchar(10) NOT NULL DEFAULT '0',
   `status` int(1) NOT NULL DEFAULT 0 COMMENT '0 = inactive, 1 = active, 2 = delete',

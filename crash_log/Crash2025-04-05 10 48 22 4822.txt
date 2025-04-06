@@ -1,0 +1,11 @@
+TypeError [ERR_INVALID_ARG_TYPE]: The "cb" argument must be of type function. Received undefined
+    at makeCallback (node:fs:190:3)
+    at Object.mkdir (node:fs:1353:14)
+    at G:\taxi_driver_node\controllers\login_controller.js:842:38
+    at Object.CheckParameterValid (G:\taxi_driver_node\helpers\helpers.js:69:20)
+    at G:\taxi_driver_node\controllers\login_controller.js:836:28
+    at Object.CheckParameterValid (G:\taxi_driver_node\helpers\helpers.js:69:20)
+    at G:\taxi_driver_node\controllers\login_controller.js:835:24
+    at G:\taxi_driver_node\controllers\login_controller.js:1061:32
+    at Query.onResult (G:\taxi_driver_node\helpers\db_helpers.js:78:28)
+    at G:\taxi_driver_node\node_modules\mysql2\lib\commands\query.js:87:16

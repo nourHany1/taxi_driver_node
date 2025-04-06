@@ -3,7 +3,7 @@ var fs = require('fs');
 const { format } = require('path');
 
 const app_debug_mode = true;
-const timezone_name = "Asia/Kolkata";
+const timezone_name = "America/New_York"; 
 const msg_server_internal_error = "Server Internal Error"
 
 module.exports = {

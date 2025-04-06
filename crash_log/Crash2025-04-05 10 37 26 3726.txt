@@ -1,0 +1,10 @@
+ReferenceError: path is not defined
+    at G:\taxi_driver_node\controllers\login_controller.js:840:47
+    at Object.CheckParameterValid (G:\taxi_driver_node\helpers\helpers.js:69:20)
+    at G:\taxi_driver_node\controllers\login_controller.js:835:28
+    at Object.CheckParameterValid (G:\taxi_driver_node\helpers\helpers.js:69:20)
+    at G:\taxi_driver_node\controllers\login_controller.js:834:24
+    at G:\taxi_driver_node\controllers\login_controller.js:1060:32
+    at Query.onResult (G:\taxi_driver_node\helpers\db_helpers.js:78:28)
+    at G:\taxi_driver_node\node_modules\mysql2\lib\commands\query.js:87:16
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)

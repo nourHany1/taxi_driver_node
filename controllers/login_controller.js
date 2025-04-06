@@ -1,8 +1,9 @@
 var db = require('./../helpers/db_helpers')
 var helper = require('./../helpers/helpers')
 var multiparty = require('multiparty')
-var fs = require('fs');
+var fs = require('fs').promises;
 var imageSavePath = "./public/img/"
+var path = require('path');
 
 //User Type:
 const ut_admin = 4
@@ -633,56 +634,76 @@ module.exports.controller = (app, io, socket_list) => {
     })
 
     app.post('/api/service_detail', (req, res) => {
-        helper.Dlog(req.body)
+        helper.Dlog(req.body);
         var reqObj = req.body;
-
+    
         checkAccessToken(req.headers, res, (uObj) => {
-            db.query("SELECT `sd`.`service_name`, `sd`.`color`, `sd`.`icon`, `sd`.`top_icon` ,  `zwcs`.`zone_service_id`, `zwcs`.`service_provide`, `zwcs`.`status_message` FROM `zone_wise_cars_service` AS `zwcs` " +
-                "INNER JOIN`zone_document` AS`zd` ON`zd`.`zone_doc_id` = `zwcs`.`zone_doc_id` " +
-                "INNER JOIN`user_detail` AS`ud` ON`ud`.`car_id` = `zwcs`.`user_car_id` AND`ud`.`zone_id` = `zd`.`zone_id` " +
-                "INNER JOIN`service_detail` AS`sd` ON`sd`.`service_id` = `zd`.`service_id` AND FIND_IN_SET(`sd`.`service_id`, `ud`.`select_service_id`) != 0 " +
-                "WHERE`ud`.`user_id` = ? AND`zwcs`.`status` = 1 AND`sd`.`status` = 1; " +
-                "SELECT `ud`.`status` , `ud`.`car_id` FROM `user_detail` AS  `ud` WHERE `ud`.`user_id`  = ? ", [
-                uObj.user_id, uObj.user_id
-            ], (err, result) => {
-
-                if (err) {
-                    helper.ThrowHtmlError(err, res);
-                    return
-                }
-
-                if (result.length > 0) {
+            // التأكد من وجود uObj.user_id
+            if (!uObj || !uObj.user_id) {
+                res.json({ "status": "0", "message": "Invalid user data" });
+                return;
+            }
+    
+            helper.Dlog("User ID: ", uObj.user_id);
+    
+            db.query(
+                "SELECT `sd`.`service_name`, `sd`.`color`, `sd`.`icon`, `sd`.`top_icon`, `zwcs`.`zone_service_id`, `zwcs`.`service_provide`, `zwcs`.`status_message` " +
+                "FROM `zone_wise_cars_service` AS `zwcs` " +
+                "INNER JOIN `zone_document` AS `zd` ON `zd`.`zone_doc_id` = `zwcs`.`zone_doc_id` " +
+                "INNER JOIN `user_detail` AS `ud` ON `ud`.`car_id` = `zwcs`.`user_car_id` AND `ud`.`zone_id` = `zd`.`zone_id` " +
+                "INNER JOIN `service_detail` AS `sd` ON `sd`.`service_id` = `zd`.`service_id` AND FIND_IN_SET(`sd`.`service_id`, `ud`.`select_service_id`) != 0 " +
+                "WHERE `ud`.`user_id` = ? AND `zwcs`.`status` = 1 AND `sd`.`status` = 1; " +
+                "SELECT `ud`.`status`, `ud`.`car_id` FROM `user_detail` AS `ud` WHERE `ud`.`user_id` = ?",
+                [uObj.user_id, uObj.user_id],
+                (err, result) => {
+                    if (err) {
+                        helper.Dlog("Database Error: ", err);
+                        helper.ThrowHtmlError(err, res);
+                        return;
+                    }
+    
+                    helper.Dlog("Query Result: ", result);
+    
+                    // التأكد من إن result فيه بيانات
+                    if (!result || !Array.isArray(result) || result.length < 2) {
+                        res.json({ "status": "0", "message": "No data returned from database", "car_status": "", "user_status": "" });
+                        return;
+                    }
+    
+                    // التأكد من إن result[1] فيه بيانات
+                    if (!result[1] || result[1].length === 0) {
+                        res.json({ "status": "0", "message": "User not found", "car_status": "", "user_status": "" });
+                        return;
+                    }
+    
                     var userStatus = "Approved";
                     switch (result[1][0].status) {
                         case 0:
-                            userStatus = "No Verify"
+                            userStatus = "No Verify";
                             break;
                         case 1:
-                            userStatus = "Not Approved"
-                            break
+                            userStatus = "Not Approved";
+                            break;
                         default:
                             break;
                     }
-                    var carStatus = ""
-                    if (result[1][0].car_id == "" || result[1][0].car_id == undefined) {
-                        carStatus = "Car not selected"
+    
+                    var carStatus = "";
+                    if (!result[1][0].car_id) { // تغطية الحالة إذا كان car_id undefined أو فارغ
+                        carStatus = "Car not selected";
+                        res.json({ "status": "0", "message": "No Service Available || Please Select Car", "car_status": carStatus, "user_status": userStatus });
                     } else {
                         if (result[0].length > 0) {
-                            carStatus = "Active"
+                            carStatus = "Active";
                         } else {
-                            carStatus = "Missing Document"
+                            carStatus = "Missing Document";
                         }
-                        res.json({ "status": "1", "payload": result[0], "car_status": carStatus, "user_status": userStatus })
+                        res.json({ "status": "1", "payload": result[0], "car_status": carStatus, "user_status": userStatus });
                     }
-
-                } else {
-                    res.json({ "status": "0", "message": "No Service Available || Please Select Car", "car_status": "", "user_status": "" })
                 }
-
-            })
-        }, ut_driver)
-
-    })
+            );
+        }, ut_driver);
+    });
 
     app.post('/api/change_password', (req, res) => {
         helper.Dlog(req.body)
@@ -818,78 +839,70 @@ module.exports.controller = (app, io, socket_list) => {
 
     app.post('/api/admin/service_add', (req, res) => {
         var form = new multiparty.Form();
-        form.parse(req, (err, reqObj, files) => {
+        form.parse(req, async (err, reqObj, files) => {
             if (err) {
                 helper.ThrowHtmlError(err, res);
                 return;
             }
-
-            helper.Dlog("--------------- Parameter --------------")
+    
+            helper.Dlog("--------------- Parameter --------------");
             helper.Dlog(reqObj);
-
-            helper.Dlog("--------------- Files --------------")
+    
+            helper.Dlog("--------------- Files --------------");
             helper.Dlog(files);
-
-            checkAccessToken(req.headers, res, (uObj) => {
-
+    
+            checkAccessToken(req.headers, res, async (uObj) => {
                 helper.CheckParameterValid(res, reqObj, ["service_name", "seat", "color", "gender", "description"], () => {
-                    helper.CheckParameterValid(res, files, ["icon", "top_icon"], () => {
-
-
-                        var iconExtension = files.icon[0].originalFilename.substring(files.icon[0].originalFilename.lastIndexOf(".") + 1);
-                        var iconName = "service/" + helper.fileNameGenerate(iconExtension);
-                        var iconNewPath = imageSavePath + iconName;
-
-                        fs.rename(files.icon[0].path, iconNewPath, (err) => {
-
-                            if (err) {
-                                helper.ThrowHtmlError(err);
-                                return;
-                            } else {
-
-                                var topIconExtension = files.top_icon[0].originalFilename.substring(files.top_icon[0].originalFilename.lastIndexOf(".") + 1);
-                                var topIConName = "service/" + helper.fileNameGenerate(topIconExtension);
-                                var topIConNewPath = imageSavePath + topIConName;
-
-                                fs.rename(files.top_icon[0].path, topIConNewPath, (err) => {
-
-                                    if (err) {
-                                        helper.ThrowHtmlError(err);
-                                        return;
-                                    } else {
-
-                                        db.query("INSERT INTO `service_detail`(`service_name`, `seat`, `color`, `icon`, `top_icon`, `gender`, `description`) VALUES (?,?,?, ?,?,?, ?)", [
-                                            reqObj.service_name[0], reqObj.seat[0], reqObj.color[0], iconName, topIConName, reqObj.gender[0], reqObj.description[0],
-                                        ], (err, result) => {
-                                            if (err) {
-                                                helper.ThrowHtmlError(err);
-                                                return;
-                                            }
-
-                                            if (result) {
-                                                res.json({
-                                                    "status": "1", "message": msg_success
-                                                })
-                                            } else {
-                                                res.json({ "status": "0", "message": msg_fail })
-                                            }
-                                        })
-
-                                    }
-                                })
-
-
-                            }
-                        })
-                    })
-                })
-
-            }, ut_admin)
-
-
-        })
-    })
-
+                    helper.CheckParameterValid(res, files, ["icon", "top_icon"], async () => {
+                        try {
+                            // معالجة ملف الـ icon
+                            var iconExtension = files.icon[0].originalFilename.substring(files.icon[0].originalFilename.lastIndexOf(".") + 1);
+                            var iconName = "service/" + helper.fileNameGenerate(iconExtension);
+                            var iconNewPath = path.join(imageSavePath, iconName);
+                            await fs.mkdir(path.dirname(iconNewPath), { recursive: true });
+                            await fs.copyFile(files.icon[0].path, iconNewPath);
+                            await fs.unlink(files.icon[0].path);
+    
+                            // معالجة ملف الـ top_icon
+                            var topIconExtension = files.top_icon[0].originalFilename.substring(files.top_icon[0].originalFilename.lastIndexOf(".") + 1);
+                            var topIConName = "service/" + helper.fileNameGenerate(topIconExtension);
+                            var topIConNewPath = path.join(imageSavePath, topIConName);
+                            await fs.mkdir(path.dirname(topIConNewPath), { recursive: true });
+                            await fs.copyFile(files.top_icon[0].path, topIConNewPath);
+                            await fs.unlink(files.top_icon[0].path);
+    
+                            // إدراج البيانات في قاعدة البيانات
+                            const query = "INSERT INTO `service_detail` (`service_name`, `seat`, `color`, `icon`, `top_icon`, `gender`, `description`) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                            db.query(query, [
+                                reqObj.service_name[0],
+                                reqObj.seat[0],
+                                reqObj.color[0],
+                                iconName,
+                                topIConName,
+                                reqObj.gender[0],
+                                reqObj.description[0],
+                            ], (err, result) => {
+                                if (err) {
+                                    helper.Dlog("Database Error: ", err); // لتسجيل الخطأ بدقة
+                                    helper.ThrowHtmlError(err, res);
+                                    return;
+                                }
+    
+                                if (result) {
+                                    res.json({ "status": "1", "message": msg_success });
+                                } else {
+                                    res.json({ "status": "0", "message": msg_fail });
+                                }
+                            });
+                        } catch (err) {
+                            helper.Dlog("File Operation Error: ", err); // تسجيل أي خطأ في معالجة الملفات
+                            helper.ThrowHtmlError(err, res);
+                        }
+                    });
+                });
+            }, ut_admin);
+        });
+    });
     app.post('/api/admin/service_list', (req, res) => {
         helper.Dlog(req.body)
         var reqObj = req.body

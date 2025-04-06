@@ -1,0 +1,1 @@
+Error: ENOENT: no such file or directory, rename 'C:\Users\DELL\AppData\Local\Temp\XtSGpwLn4ijJd6EyDGo0sNHX.png' -> 'G:\taxi_driver_node\public\img\service\202504050833263326Sbek8G3De4.png'

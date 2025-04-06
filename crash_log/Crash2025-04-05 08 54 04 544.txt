@@ -1,0 +1,1 @@
+Error: EXDEV: cross-device link not permitted, rename 'C:\Users\DELL\AppData\Local\Temp\JWZ4DaCSWON-wbtO9hVyAu_3.png' -> 'G:\taxi_driver_node\public\img\service\20250405085404544Uow9Sb6lPo.png'
